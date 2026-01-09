@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>МалоРиса — Змейка</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#111;
+  color:#fff;
+  font-family:system-ui, sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  height:100vh;
+  touch-action:none;
+}
+
+header{
+  width:100%;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#1c1c1c;
+  font-weight:600;
+}
+
+header span{
+  font-size:14px;
+}
+
+header .title{
+  font-size:18px;
+  color:#ff6b9a;
+}
+
+canvas{
+  background:#000;
+  border-radius:12px;
+  margin:10px 0;
+}
+
+.controls{
+  display:grid;
+  grid-template-columns:repeat(3,70px);
+  grid-template-rows:repeat(2,70px);
+  gap:10px;
+}
+
+.btn{
+  background:#222;
+  border-radius:14px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:28px;
+  user-select:none;
+}
+.btn:active{background:#ff6b9a}
+.up{grid-column:2}
+.left{grid-column:1}
+.down{grid-column:2}
+.right{grid-column:3}
+</style>
+</head>
+
+<body>
+
+<header>
+  <span id="score">0</span>
+  <span class="title">МалоРиса</span>
+  <span id="record">0</span>
+</header>
+
+<canvas id="game" width="320" height="320"></canvas>
+
+<div class="controls">
+  <div></div>
+  <div class="btn up">▲</div>
+  <div></div>
+  <div class="btn left">◀</div>
+  <div class="btn down">▼</div>
+  <div class="btn right">▶</div>
+</div>
+
+<script>
+const canvas = document.getElementById("game")
+const ctx = canvas.getContext("2d")
+
+const box = 20
+const cols = canvas.width / box
+const rows = canvas.height / box
+
+let snake, dir, food, score
+let record = localStorage.getItem("malorisa_record") || 0
+document.getElementById("record").innerText = record
+
+const foods = ["🍣","🍟","🍔","🍕"]
+
+function start(){
+  snake = [{x:10,y:10}]
+  dir = {x:1,y:0}
+  score = 0
+  spawnFood()
+}
+start()
+
+function spawnFood(){
+  food = {
+    x:Math.floor(Math.random()*cols),
+    y:Math.floor(Math.random()*rows),
+    icon:foods[Math.floor(Math.random()*foods.length)]
+  }
+}
+
+function draw(){
+  ctx.fillStyle="#000"
+  ctx.fillRect(0,0,canvas.width,canvas.height)
+
+  // food
+  ctx.font="18px serif"
+  ctx.fillText(food.icon, food.x*box+2, food.y*box+18)
+
+  // snake
+  ctx.fillStyle="#ff6b9a"
+  snake.forEach(p=>{
+    ctx.fillRect(p.x*box,p.y*box,box-2,box-2)
+  })
+}
+
+function update(){
+  const head = {
+    x:(snake[0].x+dir.x+cols)%cols,
+    y:(snake[0].y+dir.y+rows)%rows
+  }
+
+  // collision with self
+  if(snake.some(p=>p.x===head.x && p.y===head.y)){
+    if(score>record){
+      record = score
+      localStorage.setItem("malorisa_record",record)
+    }
+    document.getElementById("record").innerText = record
+    start()
+    return
+  }
+
+  snake.unshift(head)
+
+  if(head.x===food.x && head.y===food.y){
+    score++
+    document.getElementById("score").innerText = score
+    spawnFood()
+  }else{
+    snake.pop()
+  }
+}
+
+setInterval(()=>{
+  update()
+  draw()
+},150)
+
+// controls
+function setDir(x,y){
+  if(dir.x!==-x && dir.y!==-y){
+    dir={x,y}
+  }
+}
+
+document.querySelector(".up").onclick=()=>setDir(0,-1)
+document.querySelector(".down").onclick=()=>setDir(0,1)
+document.querySelector(".left").onclick=()=>setDir(-1,0)
+document.querySelector(".right").onclick=()=>setDir(1,0)
+
+// swipe
+let sx,sy
+canvas.addEventListener("touchstart",e=>{
+  sx=e.touches[0].clientX
+  sy=e.touches[0].clientY
+})
+canvas.addEventListener("touchend",e=>{
+  let dx=e.changedTouches[0].clientX-sx
+  let dy=e.changedTouches[0].clientY-sy
+  if(Math.abs(dx)>Math.abs(dy)){
+    setDir(dx>0?1:-1,0)
+  }else{
+    setDir(0,dy>0?1:-1)
+  }
+})
+</script>
+
+</body>
+</html>
